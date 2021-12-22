@@ -1,58 +1,129 @@
 import React, { useEffect, useState } from "react";
+import Dropdown from './Dropdown';
 import "./App.css";
-import Login from "../src/login/Login";
-import { getTokenFromUrl } from "./spotify";
-import SpotifyWebApi from "spotify-web-api-js";
-import Player from "./player/Player";
-import { useDataLayerValue } from "./context/DataLayer";
-const spotify = new SpotifyWebApi();
+import Listbox from './Listbox';
+import Detail from './Detail';
+import { Credentials } from './Credentials';
+import axios from 'axios';
 
-function App() {
-  // const [token, setToken] = useState(null);
-  const [{ user, token }, dispatch] = useDataLayerValue();
+const App = () => {
 
-  // run code based on the conditon
+  const spotify = Credentials();  
+
+  const data = [
+    {value: 1, name: 'A'},
+    {value: 2, name: 'B'},
+    {value: 3, name: 'C'},
+  ]; 
+
+  const [token, setToken] = useState('');  
+  const [genres, setGenres] = useState({selectedGenre: '', listOfGenresFromAPI: []});
+  const [playlist, setPlaylist] = useState({selectedPlaylist: '', listOfPlaylistFromAPI: []});
+  const [tracks, setTracks] = useState({selectedTrack: '', listOfTracksFromAPI: []});
+  const [trackDetail, setTrackDetail] = useState(null);
 
   useEffect(() => {
-    const hash = getTokenFromUrl();
-    window.location.hash = "";
-    const _token = hash.access_token;
 
-    if (_token) {
-      dispatch({
-        type: "SET_TOKEN",
-        token: _token,
-      });
+    axios('https://accounts.spotify.com/api/token', {
+      headers: {
+        'Content-Type' : 'application/x-www-form-urlencoded',
+        'Authorization' : 'Basic ' + btoa(spotify.ClientId + ':' + spotify.ClientSecret)      
+      },
+      data: 'grant_type=client_credentials',
+      method: 'POST'
+    })
+    .then(tokenResponse => {      
+      setToken(tokenResponse.data.access_token);
 
-      spotify.setAccessToken(_token);
-      spotify.getMe().then((user) => {
-        dispatch({
-          type: "SET_USER",
-          user: user,
-        });
-      });
-      spotify.getUserPlaylists().then((playlists) => {
-        dispatch({
-          type: "SET_PLAYLISTS",
-          playlists: playlists,
-        });
-      });
-      spotify.getPlaylist("5HZv36rRXsBdLFpeMBB302").then((response) =>
-        dispatch({
-          type: "SET_DISCOVER_WEEKLY",
-          discover_weekly: response,
+      axios('https://api.spotify.com/v1/browse/categories?locale=sv_US', {
+        method: 'GET',
+        headers: { 'Authorization' : 'Bearer ' + tokenResponse.data.access_token}
+      })
+      .then (genreResponse => {        
+        setGenres({
+          selectedGenre: genres.selectedGenre,
+          listOfGenresFromAPI: genreResponse.data.categories.items
         })
-      );
-    }
-    console.log("I have a token", token);
-  }, []);
-  console.log(user);
-  console.log("alien", token);
+      });
+      
+    });
 
+  }, [genres.selectedGenre, spotify.ClientId, spotify.ClientSecret]); 
+
+  const genreChanged = val => {
+    setGenres({
+      selectedGenre: val, 
+      listOfGenresFromAPI: genres.listOfGenresFromAPI
+    });
+
+    axios(`https://api.spotify.com/v1/browse/categories/${val}/playlists?limit=10`, {
+      method: 'GET',
+      headers: { 'Authorization' : 'Bearer ' + token}
+    })
+    .then(playlistResponse => {
+      setPlaylist({
+        selectedPlaylist: playlist.selectedPlaylist,
+        listOfPlaylistFromAPI: playlistResponse.data.playlists.items
+      })
+    });
+
+    console.log(val);
+  }
+
+  const playlistChanged = val => {
+    console.log(val);
+    setPlaylist({
+      selectedPlaylist: val,
+      listOfPlaylistFromAPI: playlist.listOfPlaylistFromAPI
+    });
+  }
+
+  const buttonClicked = e => {
+    e.preventDefault();
+
+    axios(`https://api.spotify.com/v1/playlists/${playlist.selectedPlaylist}/tracks?limit=10`, {
+      method: 'GET',
+      headers: {
+        'Authorization' : 'Bearer ' + token
+      }
+    })
+    .then(tracksResponse => {
+      setTracks({
+        selectedTrack: tracks.selectedTrack,
+        listOfTracksFromAPI: tracksResponse.data.items
+      })
+    });
+  }
+
+  const listboxClicked = val => {
+
+    const currentTracks = [...tracks.listOfTracksFromAPI];
+
+    const trackInfo = currentTracks.filter(t => t.track.id === val);
+
+    setTrackDetail(trackInfo[0].track);
+
+  }
+
+  
   return (
-    <div className="App">
-      {token ? <Player spotify={spotify} /> : <Login />}
+    <div className="container">
+      <form onSubmit={buttonClicked}>        
+          <Dropdown label="Genre :" options={genres.listOfGenresFromAPI} selectedValue={genres.selectedGenre} changed={genreChanged} />
+          <Dropdown label="Playlist :" options={playlist.listOfPlaylistFromAPI} selectedValue={playlist.selectedPlaylist} changed={playlistChanged} />
+          <div className="col-sm-6 row form-group px-0">
+            <button type='submit' className="btn btn-success col-sm-12">
+              Search
+            </button>
+          </div>
+          <div className="row">
+            <Listbox items={tracks.listOfTracksFromAPI} clicked={listboxClicked} />
+            {trackDetail && <Detail {...trackDetail} /> }
+          </div>        
+      </form>
     </div>
+    
+    
   );
 }
 
