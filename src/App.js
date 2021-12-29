@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from "react";
-import Dropdown from './Dropdown';
-import "./App.css";
 import Listbox from './Listbox';
 import Detail from './Detail';
+import Player from './Player';
 import { Credentials } from './Credentials';
 import axios from 'axios';
 
@@ -17,9 +16,10 @@ const App = () => {
   ]; 
 
   const [token, setToken] = useState('');  
-  const [genres, setGenres] = useState({selectedGenre: '', listOfGenresFromAPI: []});
-  const [playlist, setPlaylist] = useState({selectedPlaylist: '', listOfPlaylistFromAPI: []});
+  const [searchKey, setSearchKey] = useState("")
+  const [artists, setArtists] = useState([])
   const [tracks, setTracks] = useState({selectedTrack: '', listOfTracksFromAPI: []});
+  const [playlist, setPlaylist] = useState({selectedPlaylist: '', listOfPlaylistFromAPI: []});
   const [trackDetail, setTrackDetail] = useState(null);
 
   useEffect(() => {
@@ -38,46 +38,58 @@ const App = () => {
       axios('https://api.spotify.com/v1/browse/categories?locale=sv_US', {
         method: 'GET',
         headers: { 'Authorization' : 'Bearer ' + tokenResponse.data.access_token}
+      })      
+    });
+
+  }, [spotify.ClientId, spotify.ClientSecret]); 
+
+  
+  const searchArtists = async (e) => {
+      e.preventDefault()
+      const {data} = await axios.get("https://api.spotify.com/v1/search", {
+          headers: {
+              Authorization: `Bearer ${token}`
+          },
+          params: {
+              q: searchKey,
+              type: "artist"
+          }
       })
-      .then (genreResponse => {        
-        setGenres({
-          selectedGenre: genres.selectedGenre,
-          listOfGenresFromAPI: genreResponse.data.categories.items
-        })
-      });
-      
-    });
 
-  }, [genres.selectedGenre, spotify.ClientId, spotify.ClientSecret]); 
-
-  const genreChanged = val => {
-    setGenres({
-      selectedGenre: val, 
-      listOfGenresFromAPI: genres.listOfGenresFromAPI
-    });
-
-    axios(`https://api.spotify.com/v1/browse/categories/${val}/playlists?limit=10`, {
-      method: 'GET',
-      headers: { 'Authorization' : 'Bearer ' + token}
-    })
-    .then(playlistResponse => {
-      setPlaylist({
-        selectedPlaylist: playlist.selectedPlaylist,
-        listOfPlaylistFromAPI: playlistResponse.data.playlists.items
-      })
-    });
-
-    console.log(val);
+      setArtists(data.artists.items)
   }
 
-  const playlistChanged = val => {
-    console.log(val);
-    setPlaylist({
-      selectedPlaylist: val,
-      listOfPlaylistFromAPI: playlist.listOfPlaylistFromAPI
-    });
+  const renderArtists = () => {
+        return artists.map(artist => (
+            <div key={artist.id}>
+                {artist.images.length ? <img width={"100%"} src={artist.images[0].url} alt=""/> : <div>No Image</div>}
+                {artist.name}
+            </div>
+        ))
+  }
+  
+   const searchAlbums = async (e) => {
+      e.preventDefault()
+      const {data} = await axios.get("  https://api.spotify.com/v1/albums/{id}/tracks", {
+          headers: {
+              Authorization: `Bearer ${token}`
+          },
+          params: {
+              q: searchKey,
+              type: "tracks"
+          }
+      })
+
+      setTracks(data.tracks.items)
   }
 
+  const renderAlbums = () => {
+        return tracks.map(track => (
+            <div key={tracks.id}>
+                {track.name}
+            </div>
+        ))
+  }
   const buttonClicked = e => {
     e.preventDefault();
 
@@ -105,24 +117,24 @@ const App = () => {
 
   }
 
-  
   return (
     <div className="container">
-      <form onSubmit={buttonClicked}>        
-          <Dropdown label="Genre :" options={genres.listOfGenresFromAPI} selectedValue={genres.selectedGenre} changed={genreChanged} />
-          <Dropdown label="Playlist :" options={playlist.listOfPlaylistFromAPI} selectedValue={playlist.selectedPlaylist} changed={playlistChanged} />
-          <div className="col-sm-6 row form-group px-0">
-            <button type='submit' className="btn btn-success col-sm-12">
-              Search
-            </button>
-          </div>
-          <div className="row">
-            <Listbox items={tracks.listOfTracksFromAPI} clicked={listboxClicked} />
-            {trackDetail && <Detail {...trackDetail} /> }
-          </div>        
-      </form>
+      <h1>SPOTIFY APP</h1>
+      {token ?
+        <form onSubmit={searchArtists}>
+          <input type="text" onChange={e => setSearchKey(e.target.value)}/>
+              <button type={"submit"}>Search</button>
+        </form>
+        : <h2>Please login</h2>
+      }
+      <div className="row">
+        <Listbox items={tracks.listOfTracksFromAPI} clicked={listboxClicked} />
+        {trackDetail && <Detail {...trackDetail} /> }
+      </div>        
+      {renderArtists()}
+      <Player
+      />
     </div>
-    
     
   );
 }

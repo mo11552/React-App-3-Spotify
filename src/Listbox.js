@@ -21,9 +21,7 @@ const Listbox = props => {
                     </button>)
                 }
             </div>
-        </div>
-        
-
+        </div>    
     );
 }
 
