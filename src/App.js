@@ -1,26 +1,34 @@
 import React, { useEffect, useState } from "react";
-import Listbox from './Listbox';
-import Detail from './Detail';
-import Player from './Player';
 import { Credentials } from './Credentials';
+import { Container, Form } from "react-bootstrap"
+import TrackSearchResult from "./TrackSearchResult"
+import SpotifyWebApi from "spotify-web-api-js"
 import axios from 'axios';
+
+var spotifyApi = new SpotifyWebApi();
 
 const App = () => {
 
-  const spotify = Credentials();  
+  const spotify = Credentials()  
+
+  var Spotify = require('spotify-web-api-js');
+  var s = new Spotify();
+
 
   const data = [
     {value: 1, name: 'A'},
     {value: 2, name: 'B'},
     {value: 3, name: 'C'},
-  ]; 
+  ] 
 
   const [token, setToken] = useState('');  
   const [searchKey, setSearchKey] = useState("")
   const [artists, setArtists] = useState([])
   const [tracks, setTracks] = useState({selectedTrack: '', listOfTracksFromAPI: []});
   const [playlist, setPlaylist] = useState({selectedPlaylist: '', listOfPlaylistFromAPI: []});
-  const [trackDetail, setTrackDetail] = useState(null);
+  const [searchResults, setSearchResults] = useState([])
+  const [search, setSearch] = useState("")
+  const [playingTrack, setPlayingTrack] = useState()
 
   useEffect(() => {
 
@@ -43,100 +51,60 @@ const App = () => {
 
   }, [spotify.ClientId, spotify.ClientSecret]); 
 
-  
-  const searchArtists = async (e) => {
-      e.preventDefault()
-      const {data} = await axios.get("https://api.spotify.com/v1/search", {
-          headers: {
-              Authorization: `Bearer ${token}`
-          },
-          params: {
-              q: searchKey,
-              type: "artist"
+  function chooseTrack(track) {
+    setPlayingTrack(track)
+    setSearch("")
+  }
+
+  useEffect(() => {
+    if (!search) return setSearchResults([])
+    if (!setToken) return
+
+    let cancel = false
+    s.searchTracks(search).then(res => {
+      if (cancel) return
+      setSearchResults(
+        res.body.tracks.items.map(track => {
+          const smallestAlbumImage = track.album.images.reduce(
+            (smallest, image) => {
+              if (image.height < smallest.height) return image
+              return smallest
+            },
+            track.album.images[0]
+          )
+
+          return {
+            artist: track.artists[0].name,
+            title: track.name,
+            uri: track.uri,
+            albumUrl: smallestAlbumImage.url,
           }
-      })
-
-      setArtists(data.artists.items)
-  }
-
-  const renderArtists = () => {
-        return artists.map(artist => (
-            <div key={artist.id}>
-                {artist.images.length ? <img width={"100%"} src={artist.images[0].url} alt=""/> : <div>No Image</div>}
-                {artist.name}
-            </div>
-        ))
-  }
-  
-   const searchAlbums = async (e) => {
-      e.preventDefault()
-      const {data} = await axios.get("  https://api.spotify.com/v1/albums/{id}/tracks", {
-          headers: {
-              Authorization: `Bearer ${token}`
-          },
-          params: {
-              q: searchKey,
-              type: "tracks"
-          }
-      })
-
-      setTracks(data.tracks.items)
-  }
-
-  const renderAlbums = () => {
-        return tracks.map(track => (
-            <div key={tracks.id}>
-                {track.name}
-            </div>
-        ))
-  }
-  const buttonClicked = e => {
-    e.preventDefault();
-
-    axios(`https://api.spotify.com/v1/playlists/${playlist.selectedPlaylist}/tracks?limit=10`, {
-      method: 'GET',
-      headers: {
-        'Authorization' : 'Bearer ' + token
-      }
+        })
+      )
     })
-    .then(tracksResponse => {
-      setTracks({
-        selectedTrack: tracks.selectedTrack,
-        listOfTracksFromAPI: tracksResponse.data.items
-      })
-    });
-  }
 
-  const listboxClicked = val => {
-
-    const currentTracks = [...tracks.listOfTracksFromAPI];
-
-    const trackInfo = currentTracks.filter(t => t.track.id === val);
-
-    setTrackDetail(trackInfo[0].track);
-
-  }
+    return () => (cancel = true)
+  }, [search, setToken])
 
   return (
-    <div className="container">
-      <h1>SPOTIFY APP</h1>
-      {token ?
-        <form onSubmit={searchArtists}>
-          <input type="text" onChange={e => setSearchKey(e.target.value)}/>
-              <button type={"submit"}>Search</button>
-        </form>
-        : <h2>Please login</h2>
-      }
-      <div className="row">
-        <Listbox items={tracks.listOfTracksFromAPI} clicked={listboxClicked} />
-        {trackDetail && <Detail {...trackDetail} /> }
-      </div>        
-      {renderArtists()}
-      <Player
+    <Container className="d-flex flex-column py-2" style={{ height: "100vh" }}>
+      <Form.Control
+        type="search"
+        placeholder="Search Songs/Artists"
+        value={search}
+        onChange={e => setSearch(e.target.value)}
       />
-    </div>
-    
-  );
+      <div className="flex-grow-1 my-2" style={{ overflowY: "auto" }}>
+        {searchResults.map(track => (
+          <TrackSearchResult
+            track={track}
+            key={track.uri}
+            chooseTrack={chooseTrack}
+          />
+        ))}
+      </div>
+    </Container>
+  )
 }
 
 export default App;
