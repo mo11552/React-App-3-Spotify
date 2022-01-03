@@ -5,15 +5,24 @@ import TrackSearchResult from "./TrackSearchResult"
 import SpotifyWebApi from "spotify-web-api-js"
 import axios from 'axios';
 
-var spotifyApi = new SpotifyWebApi();
+const spotifyApi = new SpotifyWebApi({
+  ClientId: "af4766b8499a4af1b5a2f7cefd4ca475",
+  ClientSecret: '95f9e874c6ad4c4ea5d1e51c2ccbc6a8'
+})
+
+const accessToken = 'BQD7Q7eoZnBaEDN-6zw_QI4PVxlX4eTM3WxXwJGVpbk1tfye0-lSNVyW8MPq1lCpko02TEI1eAx-q1w1a1WvDb6_l_o_4TcJRHLCwCzldIFfKP4nnZqjn2DOsRbRlrysQnYlaYJX6uW1Mr_jYIwMKPdb-IHnA9JNEI5EdtQ'
 
 const App = () => {
 
-  const spotify = Credentials()  
+  const spotify = Credentials() 
+
+  useEffect(() => {
+    if (!accessToken) return
+    spotifyApi.setAccessToken(accessToken)
+  }, [accessToken]) 
 
   var Spotify = require('spotify-web-api-js');
   var s = new Spotify();
-
 
   const data = [
     {value: 1, name: 'A'},
@@ -24,8 +33,6 @@ const App = () => {
   const [token, setToken] = useState('');  
   const [searchKey, setSearchKey] = useState("")
   const [artists, setArtists] = useState([])
-  const [tracks, setTracks] = useState({selectedTrack: '', listOfTracksFromAPI: []});
-  const [playlist, setPlaylist] = useState({selectedPlaylist: '', listOfPlaylistFromAPI: []});
   const [searchResults, setSearchResults] = useState([])
   const [search, setSearch] = useState("")
   const [playingTrack, setPlayingTrack] = useState()
@@ -61,10 +68,10 @@ const App = () => {
     if (!setToken) return
 
     let cancel = false
-    s.searchTracks(search).then(res => {
+    spotifyApi.searchTracks(search).then(res => {
       if (cancel) return
       setSearchResults(
-        res.body.tracks.items.map(track => {
+        res.body.track.items.map(track => {
           const smallestAlbumImage = track.album.images.reduce(
             (smallest, image) => {
               if (image.height < smallest.height) return image
@@ -72,7 +79,7 @@ const App = () => {
             },
             track.album.images[0]
           )
-
+          console.log(res)
           return {
             artist: track.artists[0].name,
             title: track.name,
@@ -88,6 +95,7 @@ const App = () => {
 
   return (
     <Container className="d-flex flex-column py-2" style={{ height: "100vh" }}>
+      <h1>Spotify App</h1>
       <Form.Control
         type="search"
         placeholder="Search Songs/Artists"
