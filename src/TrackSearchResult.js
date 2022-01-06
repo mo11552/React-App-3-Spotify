@@ -1,8 +1,11 @@
 import React from "react"
+import App from './App';
 
 function TrackSearchResult({ track, chooseTrack }) {
-  function handlePlay() {
-    chooseTrack(track)
+  function handlePlay(res) {
+    return {
+      externalUrls: res.tracks.items[0].external_urls 
+    }
   }
 
   return (

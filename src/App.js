@@ -5,6 +5,7 @@ import TrackSearchResult from "./TrackSearchResult"
 import SpotifyWebApi from "spotify-web-api-js"
 import axios from 'axios';
 
+
 const spotifyApi = new SpotifyWebApi({
   ClientId: "af4766b8499a4af1b5a2f7cefd4ca475",
   ClientSecret: '95f9e874c6ad4c4ea5d1e51c2ccbc6a8'
@@ -48,7 +49,7 @@ const App = () => {
       method: 'POST'
     })
     .then(tokenResponse => {      
-      setToken(tokenResponse.data.access_token);
+      s.setAccessToken(tokenResponse.data.access_token);
 
       axios('https://api.spotify.com/v1/browse/categories?locale=sv_US', {
         method: 'GET',
@@ -70,8 +71,10 @@ const App = () => {
     let cancel = false
     spotifyApi.searchTracks(search).then(res => {
       if (cancel) return
+        console.log(res)
+        console.log(res.tracks.items[0].external_urls)
       setSearchResults(
-        res.body.track.items.map(track => {
+        res.tracks.items.map(track => {
           const smallestAlbumImage = track.album.images.reduce(
             (smallest, image) => {
               if (image.height < smallest.height) return image
@@ -79,12 +82,11 @@ const App = () => {
             },
             track.album.images[0]
           )
-          console.log(res)
           return {
             artist: track.artists[0].name,
             title: track.name,
             uri: track.uri,
-            albumUrl: smallestAlbumImage.url,
+            albumUrl: smallestAlbumImage.url
           }
         })
       )
@@ -92,6 +94,12 @@ const App = () => {
 
     return () => (cancel = true)
   }, [search, setToken])
+
+  const clickSong = (res) => {
+    return {
+      externalUrls: res.tracks.items[0].external_urls 
+    }
+  }
 
   return (
     <Container className="d-flex flex-column py-2" style={{ height: "100vh" }}>
