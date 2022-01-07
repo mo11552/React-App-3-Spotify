@@ -101,7 +101,7 @@ const App = () => {
   return (
     <Container className="d-flex flex-column py-2" style={{ height: "100vh" }}>
       <h1>Spotify App</h1>
-      <div><button onClick={clickSong}>Play Song</button></div>
+      <a href="https://open.spotify.com/track/2BcMwX1MPV6ZHP4tUT9uq6" target="_blank" rel="noreferrer noopener">Play Song</a>
       <Form.Control
         type="search"
         placeholder="Search Songs/Artists"
