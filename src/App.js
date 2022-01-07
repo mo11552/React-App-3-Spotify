@@ -71,8 +71,7 @@ const App = () => {
     let cancel = false
     spotifyApi.searchTracks(search).then(res => {
       if (cancel) return
-        console.log(res)
-        console.log(res.tracks.items[0].external_urls)
+        console.log(res.tracks.items[0].external_urls.spotify)
       setSearchResults(
         res.tracks.items.map(track => {
           const smallestAlbumImage = track.album.images.reduce(
@@ -96,14 +95,13 @@ const App = () => {
   }, [search, setToken])
 
   const clickSong = (res) => {
-    return {
-      externalUrls: res.tracks.items[0].external_urls 
-    }
-  }
+    window.open(res.tracks.items[0].external_urls.spotify)
+  };
 
   return (
     <Container className="d-flex flex-column py-2" style={{ height: "100vh" }}>
       <h1>Spotify App</h1>
+      <div><button onClick={clickSong}>Play Song</button></div>
       <Form.Control
         type="search"
         placeholder="Search Songs/Artists"
