@@ -16,6 +16,7 @@ function TrackSearchResult({ track, chooseTrack }) {
       <div className="ml-3">
         <div>{track.title}</div>
         <div className="text-muted">{track.artist}</div>
+        <a href={track.uri} target="_blank">Listen Now</a>
       </div>
     </div>
   )

@@ -84,7 +84,7 @@ const App = () => {
           return {
             artist: track.artists[0].name,
             title: track.name,
-            uri: track.uri,
+            uri: track.external_urls.spotify,
             albumUrl: smallestAlbumImage.url
           }
         })
@@ -94,14 +94,9 @@ const App = () => {
     return () => (cancel = true)
   }, [search, setToken])
 
-  const clickSong = (res) => {
-    window.open(res.tracks.items[0].external_urls.spotify)
-  };
-
   return (
     <Container className="d-flex flex-column py-2" style={{ height: "100vh" }}>
       <h1>Spotify App</h1>
-      <a href="https://open.spotify.com/track/2BcMwX1MPV6ZHP4tUT9uq6" target="_blank" rel="noreferrer noopener">Play Song</a>
       <Form.Control
         type="search"
         placeholder="Search Songs/Artists"
